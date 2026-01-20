@@ -10,7 +10,7 @@ const { execSync } = require('child_process');
 const os = require('os');
 
 // Target repo for auto-commits (separate from deployment repo)
-const TARGET_REPO = 'Lethinkj/censored';
+const TARGET_REPO = 'Lethinkj/Loophole';
 
 async function main() {
   console.log('🤖 Starting auto-commit process...');
