@@ -32,8 +32,8 @@ async function main() {
     console.log('✓ Cloned target repo');
 
     // Configure git in the cloned repo
-    execSync('git config user.name "lethin"', { cwd: tempDir, stdio: 'pipe' });
-    execSync('git config user.email "lethin@auto-commit.local"', { cwd: tempDir, stdio: 'pipe' });
+    execSync('git config user.name "Lethinkj"', { cwd: tempDir, stdio: 'pipe' });
+    execSync('git config user.email "kjlethin24@gmail.com"', { cwd: tempDir, stdio: 'pipe' });
     console.log('✓ Git configured');
 
     // Create timestamp entry
