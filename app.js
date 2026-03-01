@@ -9,6 +9,7 @@ require('dotenv').config();
 const express = require('express');
 const cron = require('node-cron');
 const { execSync } = require('child_process');
+const { startPinger, getPingerStats } = require('./replit-pinger');
 const app = express();
 
 const PORT = process.env.PORT || 10000;
@@ -67,9 +68,13 @@ function setupScheduler() {
  * Health check endpoint
  */
 app.get('/', (req, res) => {
+  const stats = getPingerStats();
   res.json({
     status: 'healthy',
     service: 'auto-commit',
+    replitPinger: stats.isRunning ? 'active' : 'stopped',
+    pingerSessions: stats.sessions,
+    pingerRequests: stats.totalRequests,
     timestamp: new Date().toISOString(),
     nextSchedules: [
       '0:00 (midnight)',
@@ -98,6 +103,9 @@ function startServer() {
   runAutoCommit();
   
   setupScheduler();
+
+  // Start Replit keep-alive pinger with zigzag intervals
+  startPinger();
   
   app.listen(PORT, () => {
     console.log(`\n🚀 Server running on port ${PORT}`);
