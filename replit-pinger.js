@@ -15,7 +15,7 @@ const https = require('https');
 const http = require('http');
 const { URL } = require('url');
 
-const TARGET_URL = 'https://bee-lert-1--kjlethin24.replit.app';
+const TARGET_URL = 'https://beelert.onrender.com';
 
 // ═══════════════════════════════════════════
 //  PERSONA SYSTEM — consistent browser fingerprints per session
