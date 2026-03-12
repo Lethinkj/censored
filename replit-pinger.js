@@ -15,7 +15,10 @@ const https = require('https');
 const http = require('http');
 const { URL } = require('url');
 
-const TARGET_URL = 'https://beelert.onrender.com';
+const TARGET_URLS = [
+  'https://beelert.onrender.com',
+  'https://click-play.onrender.com',
+];
 
 // ═══════════════════════════════════════════
 //  PERSONA SYSTEM — consistent browser fingerprints per session
@@ -346,7 +349,7 @@ let isRunning = false;
  *  4) Maybe navigate to a subpage (+ its assets)
  *  5) Maybe fire an XHR
  */
-async function simulateSession() {
+async function simulateSession(targetUrl = pick(TARGET_URLS)) {
   sessionCount++;
   const sid = sessionCount;
   const persona = pick(PERSONAS);
@@ -358,7 +361,7 @@ async function simulateSession() {
 
   // --- Step 1: Land on a page ---
   const landing = pick(SUBPAGES);
-  const pageUrl = TARGET_URL + landing;
+  const pageUrl = targetUrl + landing;
   const pageRes = await makeRequest(pageUrl, { headers: buildHeaders(persona, referer, jar, 'document') });
   totalRequests++;
   jar.parseSetCookies(pageRes.headers);
@@ -373,7 +376,7 @@ async function simulateSession() {
   await sleep(150 + Math.random() * 600);
 
   // --- Step 3: Fetch discovered assets ---
-  const assets = discoverAssets(pageRes.body, TARGET_URL);
+  const assets = discoverAssets(pageRes.body, targetUrl);
   const internalPages = assets.filter(a => a.type === 'page').map(a => a.url);
   const fetchable = assets
     .filter(a => a.type !== 'page')
@@ -385,7 +388,7 @@ async function simulateSession() {
     const aRes = await makeRequest(asset.url, { headers: buildHeaders(persona, pageUrl, jar, asset.type) });
     totalRequests++;
     jar.parseSetCookies(aRes.headers);
-    const short = asset.url.replace(TARGET_URL, '').substring(0, 55);
+    const short = asset.url.replace(targetUrl, '').substring(0, 55);
     console.log(`   📦 ${asset.type.padEnd(7)} ${short} → ${aRes.status}`);
   }
 
@@ -402,7 +405,7 @@ async function simulateSession() {
     }
 
     if (nextPath !== landing) {
-      const navRes = await makeRequest(TARGET_URL + nextPath, {
+      const navRes = await makeRequest(targetUrl + nextPath, {
         headers: buildHeaders(persona, pageUrl, jar, 'document'),
       });
       totalRequests++;
@@ -411,14 +414,14 @@ async function simulateSession() {
 
       // Fetch some assets on second page too
       if (navRes.body) {
-        const navAssets = discoverAssets(navRes.body, TARGET_URL)
+        const navAssets = discoverAssets(navRes.body, targetUrl)
           .filter(a => a.type !== 'page')
           .sort(() => Math.random() - 0.5)
           .slice(0, 1 + Math.floor(Math.random() * 3));
 
         for (const asset of navAssets) {
           await sleep(30 + Math.random() * 150);
-          const ar = await makeRequest(asset.url, { headers: buildHeaders(persona, TARGET_URL + nextPath, jar, asset.type) });
+          const ar = await makeRequest(asset.url, { headers: buildHeaders(persona, targetUrl + nextPath, jar, asset.type) });
           totalRequests++;
           jar.parseSetCookies(ar.headers);
         }
@@ -429,7 +432,7 @@ async function simulateSession() {
       // Maybe go back to original page (30%) — like pressing browser Back
       if (Math.random() < 0.3) {
         const backRes = await makeRequest(pageUrl, {
-          headers: buildHeaders(persona, TARGET_URL + nextPath, jar, 'document'),
+          headers: buildHeaders(persona, targetUrl + nextPath, jar, 'document'),
         });
         totalRequests++;
         jar.parseSetCookies(backRes.headers);
@@ -442,7 +445,7 @@ async function simulateSession() {
   // --- Step 6: Maybe XHR (25%) ---
   if (Math.random() < 0.25) {
     const xhrPaths = ['/api', '/health', '/status', '/'];
-    const xhrRes = await makeRequest(TARGET_URL + pick(xhrPaths), {
+    const xhrRes = await makeRequest(targetUrl + pick(xhrPaths), {
       headers: buildHeaders(persona, pageUrl, jar, 'xhr'),
     });
     totalRequests++;
@@ -455,7 +458,7 @@ async function simulateSession() {
     const postHeaders = buildHeaders(persona, pageUrl, jar, 'document');
     postHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
     postHeaders['Content-Length'] = '0';
-    const postRes = await makeRequest(TARGET_URL + '/', { method: 'POST', headers: postHeaders });
+    const postRes = await makeRequest(targetUrl + '/', { method: 'POST', headers: postHeaders });
     totalRequests++;
     console.log(`   📝 POST / → ${postRes.status}`);
   }
@@ -509,7 +512,7 @@ async function startPinger() {
 
   console.log(`\n${'═'.repeat(60)}`);
   console.log(`🏓 Replit Stealth Keep-Alive — STARTED`);
-  console.log(`   Target: ${TARGET_URL}`);
+  console.log(`   Targets: ${TARGET_URLS.join(', ')}`);
   console.log(`   Mode: Full browser session simulation`);
   console.log(`   Timing: Poisson + hour-weight + jitter + idle/burst`);
   console.log(`   Personas: ${PERSONAS.length} profiles`);
